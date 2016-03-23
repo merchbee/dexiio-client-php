@@ -1,58 +1,65 @@
 <?php
 
-class CloudScrape {
+class DexiIo
+{
 
     /**
-     * @var CloudScrapeClient
+     * @var DexiIoClient
      */
     private static $client;
 
 
-    public static function init($apiKey, $accountId) {
-        self::$client = new CloudScrapeClient($apiKey, $accountId);
+    public static function init($apiKey, $accountId)
+    {
+        self::$client = new DexiIoClient($apiKey, $accountId);
     }
 
     /**
-     * @return CloudScrapeClient
-     * @throws Exception if CloudScrape::init was not called
+     * @return DexiIoClient
+     * @throws Exception if DexiIo::init was not called
      */
-    public static function defaultClient() {
+    public static function defaultClient()
+    {
         self::checkState();
 
         return self::$client;
     }
 
     /**
-     * @return CloudScrapeExecutions
-     * @throws Exception if CloudScrape::init was not called
+     * @return DexiIoExecutions
+     * @throws Exception if DexiIo::init was not called
      */
-    public static function executions() {
+    public static function executions()
+    {
         self::checkState();
 
         return self::$client->executions();
     }
 
     /**
-     * @return CloudScrapeRuns
-     * @throws Exception if CloudScrape::init was not called
+     * @return DexiIoRuns
+     * @throws Exception if DexiIo::init was not called
      */
-    public static function runs() {
+    public static function runs()
+    {
         self::checkState();
 
         return self::$client->runs();
     }
 
-    private static function checkState(){
+    private static function checkState()
+    {
         if (!self::$client) {
             throw new Exception('You must call init first before using the API');
         }
     }
 }
 
-class CloudScrapeClient {
+class DexiIoClient
+{
 
-    private $endPoint = 'https://app.cloudscrape.com/api/';
-    private $userAgent = 'CS-PHP-CLIENT/1.0';
+    private $endPoint = 'https://app.dexi.io/api/';
+    private $userAgent = 'DI-PHP-CLIENT/1.0';
     private $apiKey;
     private $accountId;
     private $accessKey;
@@ -60,26 +67,28 @@ class CloudScrapeClient {
     private $requestTimeout = 3600;
 
     /**
-     * @var CloudScrapeExecutions
+     * @var DexiIoExecutions
      */
     private $executions;
 
     /**
-     * @var CloudScrapeRuns
+     * @var DexiIoRuns
      */
     private $runs;
 
-    function __construct($apiKey, $accountId) {
+    function __construct($apiKey, $accountId)
+    {
         $this->apiKey = $apiKey;
         $this->accountId = $accountId;
         $this->accessKey = md5($accountId . $apiKey);
 
-        $this->executions = new CloudScrapeExecutions($this);
-        $this->runs = new CloudScrapeRuns($this);
+        $this->executions = new DexiIoExecutions($this);
+        $this->runs = new DexiIoRuns($this);
     }
 
     /**
      * Get current request timeout
+     *
      * @return int
      */
     public function getRequestTimeout()
@@ -100,9 +109,9 @@ class CloudScrapeClient {
     }
 
 
-
     /**
      * Get endpoint / base url of requests
+     *
      * @return string
      */
     public function getEndPoint()
@@ -112,6 +121,7 @@ class CloudScrapeClient {
 
     /**
      * Set end point / base url of requests
+     *
      * @param string $endPoint
      */
     public function setEndPoint($endPoint)
@@ -121,6 +131,7 @@ class CloudScrapeClient {
 
     /**
      * Get user agent of requests
+     *
      * @return string
      */
     public function getUserAgent()
@@ -130,6 +141,7 @@ class CloudScrapeClient {
 
     /**
      * Set user agent of requests
+     *
      * @param string $userAgent
      */
     public function setUserAgent($userAgent)
@@ -140,19 +152,22 @@ class CloudScrapeClient {
 
     /**
      *
-     * Make a call to the CloudScrape API
+     * Make a call to the DexiIo API
+     *
      * @param string $url
      * @param string $method
-     * @param mixed $body Will be converted into json
+     * @param mixed  $body Will be converted into json
+     *
      * @return object
-     * @throws CloudScrapeRequestException
+     * @throws DexiIoRequestException
      */
-    public function request($url, $method = 'GET', $body = null) {
+    public function request($url, $method = 'GET', $body = null)
+    {
         $content = $body ? json_encode($body) : null;
 
         $headers = array();
-        $headers[] = "X-CloudScrape-Access: $this->accessKey";
-        $headers[] = "X-CloudScrape-Account: $this->accountId";
+        $headers[] = "X-DexiIO-Access: $this->accessKey";
+        $headers[] = "X-DexiIO-Account: $this->accountId";
         $headers[] = "User-Agent: $this->userAgent";
         $headers[] = "Accept: application/json";
         $headers[] = "Content-Type: application/json";
@@ -163,12 +178,12 @@ class CloudScrapeClient {
 
         $requestDetails = array(
             'method' => $method,
-            'header' => join("\r\n",$headers),
+            'header' => join("\r\n", $headers),
             'content' => $content,
             'timeout' => $this->requestTimeout
         );
 
-        $context  = stream_context_create(array(
+        $context = stream_context_create(array(
             'https' => $requestDetails,
             'http' => $requestDetails
         ));
@@ -180,7 +195,7 @@ class CloudScrapeClient {
         $out->content = $outRaw;
 
         if ($out->statusCode < 100 || $out->statusCode > 399) {
-            throw new CloudScrapeRequestException("CloudScrape request failed: $out->statusCode $out->reason", $url, $out);
+            throw new DexiIoRequestException("DexiIo request failed: $out->statusCode $out->reason", $url, $out);
         }
 
         return $out;
@@ -189,11 +204,13 @@ class CloudScrapeClient {
     /**
      * @param string $url
      * @param string $method
-     * @param mixed $body
+     * @param mixed  $body
+     *
      * @return mixed
-     * @throws CloudScrapeRequestException
+     * @throws DexiIoRequestException
      */
-    public function requestJson($url, $method = 'GET', $body = null) {
+    public function requestJson($url, $method = 'GET', $body = null)
+    {
         $response = $this->request($url, $method, $body);
         return json_decode($response->content);
     }
@@ -201,30 +218,34 @@ class CloudScrapeClient {
     /**
      * @param string $url
      * @param string $method
-     * @param mixed $body
+     * @param mixed  $body
+     *
      * @return bool
-     * @throws CloudScrapeRequestException
+     * @throws DexiIoRequestException
      */
-    public function requestBoolean($url, $method = 'GET', $body = null) {
+    public function requestBoolean($url, $method = 'GET', $body = null)
+    {
         $this->request($url, $method, $body);
         return true;
     }
 
-    private function parseHeaders($http_response_header) {
+    private function parseHeaders($http_response_header)
+    {
         $status = 0;
         $reason = '';
         $outHeaders = array();
 
         if ($http_response_header &&
-            count($http_response_header) > 0) {
+            count($http_response_header) > 0
+        ) {
             $httpHeader = array_shift($http_response_header);
             if (preg_match('/([0-9]{3})\s+([A-Z_]+)/i', $httpHeader, $matches)) {
                 $status = intval($matches[1]);
                 $reason = $matches[2];
             }
 
-            foreach($http_response_header as $header) {
-                $parts = explode(':',$header,2);
+            foreach ($http_response_header as $header) {
+                $parts = explode(':', $header, 2);
                 if (count($parts) < 2) {
                     continue;
                 }
@@ -242,188 +263,240 @@ class CloudScrapeClient {
 
     /**
      * Interact with executions.
-     * @return CloudScrapeExecutions
+     *
+     * @return DexiIoExecutions
      */
-    public function executions() {
+    public function executions()
+    {
         return $this->executions;
     }
 
     /**
      * Interact with runs
-     * @return CloudScrapeRuns
+     *
+     * @return DexiIoRuns
      */
-    public function runs() {
+    public function runs()
+    {
         return $this->runs;
     }
 
 }
 
-class CloudScrapeExecutions {
+class DexiIoExecutions
+{
 
     /**
-     * @var CloudScrapeClient
+     * @var DexiIoClient
      */
     private $client;
 
-    function __construct(CloudScrapeClient $client) {
+    function __construct(DexiIoClient $client)
+    {
         $this->client = $client;
     }
 
     /**
      * Get execution
+     *
      * @param string $executionId
-     * @return CloudScrapeExecutionDTO
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function get($executionId) {
+    public function get($executionId)
+    {
         return $this->client->requestJson("executions/$executionId");
     }
 
     /**
      * Delete execution permanently
+     *
      * @param string $executionId
+     *
      * @return boolean
      */
-    public function remove($executionId) {
-        return $this->client->requestBoolean("executions/$executionId",'DELETE');
+    public function remove($executionId)
+    {
+        return $this->client->requestBoolean("executions/$executionId", 'DELETE');
     }
 
     /**
      * Get the entire result of an execution.
+     *
      * @param string $executionId
-     * @return CloudScrapeResultDTO
+     *
+     * @return DexiIoResultDTO
      */
-    public function getResult($executionId) {
+    public function getResult($executionId)
+    {
         return $this->client->requestJson("executions/$executionId/result");
     }
 
     /**
      * Get a file from a result set
+     *
      * @param string $executionId
      * @param string $fileId
-     * @return CloudScrapeFileDTO
+     *
+     * @return DexiIoFileDTO
      */
-    public function getResultFile($executionId, $fileId) {
+    public function getResultFile($executionId, $fileId)
+    {
         $response = $this->client->request("executions/$executionId/file/$fileId");
-        return new CloudScrapeFileDTO($response->headers['Content-Type'], $response->content);
+        return new DexiIoFileDTO($response->headers['Content-Type'], $response->content);
     }
 
     /**
      * Stop running execution
+     *
      * @param string $executionId
+     *
      * @return bool
      */
-    public function stop($executionId) {
-        return $this->client->requestBoolean("executions/$executionId/stop",'POST');
+    public function stop($executionId)
+    {
+        return $this->client->requestBoolean("executions/$executionId/stop", 'POST');
     }
 
     /**
      * Resume stopped execution
+     *
      * @param string $executionId
+     *
      * @return bool
      */
-    public function resume($executionId) {
-        return $this->client->requestBoolean("executions/$executionId/continue",'POST');
+    public function resume($executionId)
+    {
+        return $this->client->requestBoolean("executions/$executionId/continue", 'POST');
     }
 }
 
-class CloudScrapeRuns {
+class DexiIoRuns
+{
 
     /**
-     * @var CloudScrapeClient
+     * @var DexiIoClient
      */
     private $client;
 
-    function __construct(CloudScrapeClient $client) {
+    function __construct(DexiIoClient $client)
+    {
         $this->client = $client;
     }
 
     /**
      * @param string $runId
-     * @return CloudScrapeRunDTO
+     *
+     * @return DexiIoRunDTO
      */
-    public function get($runId) {
+    public function get($runId)
+    {
         return $this->client->requestJson("runs/$runId");
     }
 
     /**
      * Permanently delete run
+     *
      * @param string $runId
+     *
      * @return bool
      */
-    public function remove($runId) {
+    public function remove($runId)
+    {
         return $this->client->requestBoolean("runs/$runId", 'DELETE');
     }
 
     /**
      * Start new execution of the run
+     *
      * @param string $runId
-     * @return CloudScrapeExecutionDTO
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function execute($runId) {
-        return $this->client->requestJson("runs/$runId/execute",'POST');
+    public function execute($runId)
+    {
+        return $this->client->requestJson("runs/$runId/execute", 'POST');
     }
 
     /**
      * Start new execution of the run, and wait for it to finish before returning the result.
-     * The execution and result will be automatically deleted from CloudScrape completion
+     * The execution and result will be automatically deleted from DexiIo completion
      * - both successful and failed.
+     *
      * @param string $runId
-     * @return CloudScrapeResultDTO
+     *
+     * @return DexiIoResultDTO
      */
-    public function executeSync($runId) {
-        return $this->client->requestJson("runs/$runId/execute/wait",'POST');
+    public function executeSync($runId)
+    {
+        return $this->client->requestJson("runs/$runId/execute/wait", 'POST');
     }
 
     /**
      * Starts new execution of run with given inputs
+     *
      * @param string $runId
      * @param object $inputs
-     * @return CloudScrapeExecutionDTO
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function executeWithInput($runId, $inputs) {
-        return $this->client->requestJson("runs/$runId/execute/inputs",'POST', $inputs);
+    public function executeWithInput($runId, $inputs)
+    {
+        return $this->client->requestJson("runs/$runId/execute/inputs", 'POST', $inputs);
     }
 
     /**
      * Starts new execution of run with given inputs, and wait for it to finish before returning the result.
-     * The inputs, execution and result will be automatically deleted from CloudScrape upon completion
+     * The inputs, execution and result will be automatically deleted from DexiIo upon completion
      * - both successful and failed.
+     *
      * @param string $runId
-     * @param array $inputs array of input objects
-     * @return CloudScrapeExecutionDTO
+     * @param array  $inputs array of input objects
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function executeBulkSync($runId, $inputs) {
-        return $this->client->requestJson("runs/$runId/execute/bulk/wait",'POST', $inputs);
+    public function executeBulkSync($runId, $inputs)
+    {
+        return $this->client->requestJson("runs/$runId/execute/bulk/wait", 'POST', $inputs);
     }
 
     /**
      * Starts new execution of run with given inputs
+     *
      * @param string $runId
      * @param object $inputs
-     * @return CloudScrapeExecutionDTO
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function executeBulk($runId, $inputs) {
-        return $this->client->requestJson("runs/$runId/execute/bulk",'POST', $inputs);
+    public function executeBulk($runId, $inputs)
+    {
+        return $this->client->requestJson("runs/$runId/execute/bulk", 'POST', $inputs);
     }
 
     /**
      * Starts new execution of run with given inputs, and wait for it to finish before returning the result.
-     * The inputs, execution and result will be automatically deleted from CloudScrape upon completion
+     * The inputs, execution and result will be automatically deleted from DexiIo upon completion
      * - both successful and failed.
-     * @param string $runId
+     *
+     * @param string       $runId
      * @param object|array $inputs
-     * @return CloudScrapeExecutionDTO
+     *
+     * @return DexiIoExecutionDTO
      */
-    public function executeWithInputSync($runId, $inputs) {
-        return $this->client->requestJson("runs/$runId/execute/inputs/wait",'POST', $inputs);
+    public function executeWithInputSync($runId, $inputs)
+    {
+        return $this->client->requestJson("runs/$runId/execute/inputs/wait", 'POST', $inputs);
     }
 
     /**
      * Get the result from the latest execution of the given run.
+     *
      * @param string $runId
-     * @return CloudScrapeResultDTO
+     *
+     * @return DexiIoResultDTO
      */
-    public function getLatestResult($runId) {
+    public function getLatestResult($runId)
+    {
         return $this->client->requestJson("runs/$runId/latest/result");
     }
 
@@ -431,16 +504,19 @@ class CloudScrapeRuns {
      * Get executions for the given run.
      *
      * @param string $runId
-     * @param int $offset
-     * @param int $limit
-     * @return CloudScrapeExecutionListDTO
+     * @param int    $offset
+     * @param int    $limit
+     *
+     * @return DexiIoExecutionListDTO
      */
-    public function getExecutions($runId, $offset = 0, $limit = 30) {
+    public function getExecutions($runId, $offset = 0, $limit = 30)
+    {
         return $this->client->requestJson("runs/$runId/executions?offset=$offset&limit=$limit");
     }
 }
 
-class CloudScrapeExecutionDTO {
+class DexiIoExecutionDTO
+{
     const QUEUED = 'QUEUED';
     const PENDING = 'PENDING';
     const RUNNING = 'RUNNING';
@@ -450,18 +526,21 @@ class CloudScrapeExecutionDTO {
 
     /**
      * The ID of the execution
+     *
      * @var string
      */
     public $_id;
 
     /**
      * State of the executions. See const definitions on class to see options
+     *
      * @var string
      */
     public $_state;
 
     /**
      * Time the executions was started - in milliseconds since unix epoch
+     *
      * @var int
      */
     public $_starts;
@@ -469,13 +548,15 @@ class CloudScrapeExecutionDTO {
     /**
      * Time the executions finished - in milliseconds since unix epoch.
      * Null if execution has not yet finished.
+     *
      * @var int
      */
     public $_finished;
 
 }
 
-class CloudScrapeExecutionListDTO {
+class DexiIoExecutionListDTO
+{
     /**
      * @var int
      */
@@ -487,40 +568,47 @@ class CloudScrapeExecutionListDTO {
     public $totalRows;
 
     /**
-     * @var CloudScrapeExecutionDTO[]
+     * @var DexiIoExecutionDTO[]
      */
     public $rows;
 }
 
-class CloudScrapeResultDTO {
+class DexiIoResultDTO
+{
     /**
      * Header fields
+     *
      * @var string[]
      */
     public $headers;
 
     /**
      * An array of arrays containing each row - with each value inside it.
+     *
      * @var mixed[][]
      */
     public $rows;
 
     /**
      * Total number of rows available
+     *
      * @var int
      */
     public $totalRows;
 }
 
-class CloudScrapeFileDTO {
+class DexiIoFileDTO
+{
     /**
      * The type of file
+     *
      * @var string
      */
     public $mimeType;
 
     /**
      * The contents of the file
+     *
      * @var string
      */
     public $contents;
@@ -534,21 +622,25 @@ class CloudScrapeFileDTO {
 
 }
 
-class CloudScrapeRunDTO {
+class DexiIoRunDTO
+{
     /**
      * The ID of the run
+     *
      * @var string
      */
     public $_id;
 
     /**
      * Name of the run
+     *
      * @var string
      */
     public $name;
 }
 
-class CloudScrapeRequestException extends Exception {
+class DexiIoRequestException extends Exception
+{
     private $response;
     private $url;
 
@@ -557,7 +649,8 @@ class CloudScrapeRequestException extends Exception {
      * @param string $url
      * @param object $response
      */
-    function __construct($msg, $url, $response) {
+    function __construct($msg, $url, $response)
+    {
         parent::__construct($msg, $response->statusCode);
         $this->response = $response;
         $this->url = $url;
@@ -573,9 +666,11 @@ class CloudScrapeRequestException extends Exception {
 
     /**
      * The URL of the request
+     *
      * @return string
      */
-    public function getUrl() {
+    public function getUrl()
+    {
         return $this->url;
     }
 
